@@ -15,7 +15,7 @@ void mpmParticleInitialize(std::string filename, std::vector<Particle> &particle
     std::vector<Vector3f> xp;
     readtxt(filename, xp);
     int part_number = xp.size();
-    std::cout << "INFO: >>>>>>>>>>>>>>> MPM Initialization <<<<<<<<<<<<<<<" << std::endl;
+    std::cout << "INFO: --------------- MPM Initialization ---------------" << std::endl;
     std::cout << "INFO: Particle number is " << part_number << std::endl;
     particles.resize(part_number);
     for (int i = 0; i < part_number; i++){
@@ -54,7 +54,7 @@ void mpmGridInitialize(std::vector<GridAttr> &gridAttr, GridInfo &gridInfo, Vect
             }
         }
     }
-    std::cout << "INFO: >>>>>>>>>>>>>>> MPM Initialization Ends <<<<<<<<<<<<<<< " << std::endl;
+    std::cout << "INFO: --------------- MPM Initialization Ends --------------- " << std::endl;
 }
 
 void mpmGridReinitialize(std::vector<GridAttr> &gridAttr, GridInfo &gridInfo){

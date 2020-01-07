@@ -1,6 +1,9 @@
 //
 // Created by ziyinqu on 10/1/17.
 //
+
+#include <sstream>
+#include <iomanip>
 #include <string>
 #include "mpmInitialize.h"
 #include "transfer.h"
@@ -13,25 +16,60 @@
 #include "Test/derivativeTest.h"
 #include "AnalyticCollisionObject.h"
 #include <ctime>
+    
+#include <pcl/visualization/pcl_visualizer.h>
+#include <thread>
 
 #define SANITYCHECK false
 #define DERIVATIVETEST false
-#define TIMER false
+#define TIMER true
 
-int main(){
 
-    if (SANITYCHECK){
+void render_particles(pcl::visualization::PCLVisualizer::Ptr viewer , std::vector<Particle> particles, int frame_num)
+{
+    if (frame_num > 0)
+        viewer->removeAllPointClouds();
+
+    int num_particles = particles.size();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    cloud->points.resize(num_particles);
+    for (int i = 0; i < num_particles; ++i)
+    {
+        cloud->points[i].x = particles[i].posP.x();
+        cloud->points[i].y = particles[i].posP.y();
+        cloud->points[i].z = particles[i].posP.z();
+    }
+
+    viewer->addPointCloud<pcl::PointXYZ> (cloud, "sample cloud");
+    // viewer->updatePointCloud<pcl::PointXYZ> (cloud, "sample cloud");
+
+    std::stringstream ss;
+    ss << std::setw(4) << std::setfill('0') << frame_num;
+    std::string fnum = ss.str();
+
+    viewer->spinOnce (0);
+    std::string filename = "Output/images/img_" + fnum + ".png";
+    viewer->saveScreenshot(filename);
+
+}
+
+int main()
+{
+
+    if (SANITYCHECK)
         quadraticTest();
-    }
-    if(DERIVATIVETEST){
+
+    if(DERIVATIVETEST)
         derivativeTest();
-    }
-    else {
+    else 
+    {
         // MPM simulation parameters setting up
         float dt = 1e-4f; //50 FPS
         float frameRate = 60;
+        // int stepsPerFrame = 1;
         int stepsPerFrame = (int)ceil(1 / (dt / (1 / frameRate))); //calculate how many steps per frame we should have based on our desired frame rate and dt!
         float alpha = 0.95;
+        int num_frames = 1000;
 
         Vector3f gravity = Vector3f(0, -10, 0);
 
@@ -39,17 +77,17 @@ int main(){
         float density = 1.0f;
         float mass = 10;
         float volume = mass/density;
-//        std::string filenameLeft = "../Models/smallLeftCube.obj";
-//        std::string filenameRight = "../Models/smallRightCube.obj";
-//        std::vector<Particle> particlesLeft;
-//        std::vector<Particle> particlesRight;
-//        Vector3f velocityLeft = Vector3f(0.f, 0.f, 0.f);
-//        Vector3f velocityRight = Vector3f(-0.f, 0.f, 0.f);
-//        mpmParticleInitialize(filenameLeft, particlesLeft, mass, volume, velocityLeft);
-//        mpmParticleInitialize(filenameRight, particlesRight, mass, volume, velocityRight);
-//        particlesLeft.insert(particlesLeft.end(), particlesRight.begin(), particlesRight.end());
-//        std::vector<Particle> particles = particlesLeft;
-        std::string filenameLeft = "../Models/translatedRandomDragon_2500000.obj";
+        std::string filenameLeft = "../Models/smallLeftCube.obj";
+        // std::string filenameRight = "../Models/smallRightCube.obj";
+        // std::vector<Particle> particlesLeft;
+        // std::vector<Particle> particlesRight;
+        // Vector3f velocityLeft = Vector3f(0.f, 0.f, 0.f);
+        // Vector3f velocityRight = Vector3f(-0.f, 0.f, 0.f);
+        // mpmParticleInitialize(filenameLeft, particlesLeft, mass, volume, velocityLeft);
+        // mpmParticleInitialize(filenameRight, particlesRight, mass, volume, velocityRight);
+        // particlesLeft.insert(particlesLeft.end(), particlesRight.begin(), particlesRight.end());
+        // std::vector<Particle> particles = particlesLeft;
+        // std::string filenameLeft = "../Models/translatedRandomDragon_2500000.obj";
         std::vector<Particle> particles;
         Vector3f velocity = Vector3f(0.f, 0.f, 0.f);
         mpmParticleInitialize(filenameLeft, particles, mass, volume, velocity);
@@ -64,14 +102,36 @@ int main(){
         // start simulation
         int step = 0;
         int frame = 0;
-        cout << "INFO: >>>>>>>>>>>>>>> Simulation Start! <<<<<<<<<<<<<<< " << endl;
-        while (frame != 40) {
+        cout << "INFO: ------------ Simulation Start! ------------ " << endl;
+
+        // create simulation window 
+        pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+        viewer->initCameraParameters ();
+        viewer->setCameraPosition(0, 0.5, 2,    0, 0, 0,   0, 1, 0);
+        viewer->setCameraFieldOfView(0.523599);
+        viewer->setCameraClipDistances(0.00522511, 50); 
+        viewer->setBackgroundColor (0, 0, 0);
+        viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
+
+        // add a plane to visualizer
+        pcl::ModelCoefficients plane_coeff;
+        plane_coeff.values.resize(4);    // We need 4 values
+        plane_coeff.values[0] = 0;
+        plane_coeff.values[1] = 1;
+        plane_coeff.values[2] = 0;
+        plane_coeff.values[3] = 0;
+        viewer->addPlane(plane_coeff);
+
+
+
+        while (frame < num_frames) 
+        {
             // set timer
             std::clock_t start, p2gstart, g2pstart, updatestart, forcestart, updatefstart;
             double duration, p2gduration, g2pduration, updateduration, forceduration, updatefduration;
             start = std::clock();
 
-            //cout << "INFO: Current simulation step is " << step << endl;
+            cout << "INFO: Current simulation step is " << step << endl;
             mpmGridReinitialize(gridAttrs, gridInfo);
             std::vector<int> active_nodes;
 
@@ -121,10 +181,21 @@ int main(){
             g2pduration = ( std::clock() - g2pstart ) / (double) CLOCKS_PER_SEC;
 
 
-            if (step % stepsPerFrame == 0) {
+            if (step % stepsPerFrame == 0) 
+            {
                 //Save the particles!
                 cout << "INFO: Current Frame is " << frame << endl;
-                saveFrame(particles, frame); //call the saving routine
+                render_particles(viewer, particles, frame);
+                // saveFrame(particles, frame); //call the saving routine
+                // saveFramePCD(particles, frame); //call the saving routine
+                // PointCloud* cloud = new PointCloud;
+                // int num_particles = particles.size();
+                // for (int i = 0; i < num_particles; ++i)
+                // {
+                //     cloud->add_vertex(vec3(particles[i][0], particles[i][1], particles[i][2]));// z = 0: all points are on XY plane
+                // }
+
+
                 frame = frame + 1;
             }
                 //Save the particles!
@@ -133,7 +204,8 @@ int main(){
             step = step + 1;
             // output time calculation
             duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-            if (TIMER){
+            if (TIMER)
+            {
                 cout << "      P2G time is: " << p2gduration << endl;
                 cout << "      UPV time is: " << updateduration << endl;
                 cout << "      FRC time is: " << forceduration << endl;

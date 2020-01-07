@@ -10,8 +10,9 @@
 
 using namespace Eigen;
 
-void quadraticTest(){
-    std::cout << "INFO: >>>>>>>>>>>>>>>>>>> Kernel Test Start <<<<<<<<<<<<<<<<<<<" << std::endl;
+void quadraticTest()
+{
+	std::cout << "INFO: ------------------Kernel Test Start------------------ " << std::endl;
     Vector3f xp = Vector3f(0.321932, 0.452119, 0.434341);
     float h = 0.04;
     Vector3f index_space = xp / h;
@@ -21,11 +22,13 @@ void quadraticTest(){
     QuadraticInterpolation(index_space, base_node, wp, dwp);
     std::cout << "INFO: " << xp.transpose() << std::endl;
     std::cout << "INFO: " << base_node.transpose() << std::endl;
-    for (int i = 0; i < 3; i++){
+    for (int i = 0; i < 3; i++)
+    {
         float wi = wp(0,i);
         float dwi = dwp(0,i);
         int node_i = base_node(0) + i;
-        for (int j = 0; j < 3; j++){
+        for (int j = 0; j < 3; j++)
+        {
             float wj = wp(1,j);
             float dwj = dwp(1,j);
             int node_j = base_node(1) + j;
@@ -42,5 +45,4 @@ void quadraticTest(){
             }
         }
     }
-
 }

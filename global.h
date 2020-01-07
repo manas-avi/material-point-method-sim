@@ -4,7 +4,6 @@
 #pragma once
 #ifndef MATERIAL_POINT_METHOD_SIM_GLOBAL_H
 #define MATERIAL_POINT_METHOD_SIM_GLOBAL_H
-
 #include "Eigen/Eigen"
 
 using namespace Eigen;
